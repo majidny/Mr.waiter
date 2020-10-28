@@ -1,23 +1,58 @@
 <?php
-session_start()
+session_start();
+$cid = $_SESSION['cid'];
+include('./connection.php');
+$status="";
+if (isset($_POST['code']) && $_POST['code']!=""){
+$code = $_POST['code'];
+$result = mysqli_query($dbConn,"SELECT * FROM `food` WHERE food_id='$code'");
+$row = mysqli_fetch_assoc($result);
+$fid = $row['food_id'];
+$name = $row['item_name'];
+$category = $row['category'];
+$price = $row['price'];
+
+
+
+
+
+$folder="./Upload";  
+$url = $folder."/".$row["image"];
+$image = $url;
+
+$cartArray = array(
+	$code=>array(
+	'name'=>$name,
+	'code'=>$fid,
+	'price'=>$price,
+	'quantity'=>1,
+	'image'=>$url)
+);
+
+if(empty($_SESSION["shopping_cart"])) {
+	$_SESSION["shopping_cart"] = $cartArray;
+	$status = "<div class='box'>Product is added to your cart!</div>";
+}else{
+	$array_keys = array_keys($_SESSION["shopping_cart"]);
+	if(in_array($code,$array_keys)) {
+		$status = "<div class='box' style='color:red;'>
+		Product is already added to your cart!</div>";	
+	} else {
+	$_SESSION["shopping_cart"] = array_merge($_SESSION["shopping_cart"],$cartArray);
+	$status = "<div class='box'>Product is added to your cart!</div>";
+	}
+
+	}
+}
 ?>
-<?php
-include './customerheader.php';
-        require './connection.php';
-        // put your code here
-        $email=$_SESSION["email"];
-        $sql = "select * from customer where email = '".$email."'";
-        $result = mysqli_query($dbConn, $sql);
-        $row= mysqli_fetch_array($result);
-        
-     ?>
-<!DOCTYPE html>
+
 <html>
 <head>
-    
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<title>Shopping Cart</title>
+<link rel='stylesheet' href='css/style.css' type='text/css' media='all' />
+<link rel='stylesheet' href='style/style.css' type='text/css' media='all' />
 <style>
-* {
+    * {
   box-sizing: border-box;
 }
 
@@ -28,7 +63,7 @@ body {
 /* Float four columns side by side */
 .column {
   float: left;
-  width: 25%;
+  width: 50%;
   padding: 0 15px;
 }
 
@@ -54,13 +89,34 @@ body {
 /* Style the counter cards */
 .card {
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  padding: 16px;
+  padding: 40px;
   text-align: center;
   background-color: #f1f1f1;
+  
+}
+.cardbutton {
+  border: none;
+  outline: 0;
+  padding: 12px;
+  color: white;
+  background-color: #56AED4;
+  text-align: center;
+  cursor: pointer;
+  width: 100%;
+  font-size: 15px;
+}
+
+.cardbutton:hover {
+  opacity: 0.7;
+  background-color: #012B50;
+}
+.price {
+  color: grey;
+  font-size: 22px;
 }
 .images{
-				width:200px;
-				height:200px;
+				width:300px;
+				height:100px;
 				cursor:pointer;
 				margin:10px;
 			}
@@ -72,7 +128,7 @@ body {
 				transition: all 0.3s;
 				-webkit-transition: all 0.3s;
 			}
-.linkstyle:link, .linkstyle:visited {
+                        .linkstyle:link, .linkstyle:visited {
   background-color: #56AED4;
   color: white;
   padding: 14px 25px;
@@ -84,43 +140,56 @@ body {
 .linkstyle:hover, .linkstyle:active {
   background-color: #012B50;
 }
-</style>
+                        </style>
 </head>
+<?php include './customerheader.php'; ?>
 <body>
+    
+    <form name="form1" method="post" action="">
+<div style="width:700px; margin:50 auto;">
+
+  
 
 <?php
-$sql2 = "SELECT * FROM `food`;";
-        $result2 = mysqli_query($dbConn, $sql2);
-    if ($result2->num_rows > 0) {
-        while ($row2= mysqli_fetch_array($result2)){
-            
-    
-        
-         $folder="./Upload";  
-	$url = $folder."/".$row2["image"];
-
+if(!empty($_SESSION["shopping_cart"])) {
+$cart_count = count(array_keys($_SESSION["shopping_cart"]));
 ?>
+<div class="cart_div">
+   
+    <a href="cart.php?cid=<?php echo $cid;  ?>"><img src="cart-icon.png" /> Cart<span><?php echo $cart_count; ?></span></a>
 
-<div class="row">
-  <div class="column">
-    <div class="card">
-      <image src="<?php echo $url; ?>" class="images" />
-    </div>
-      <p><?php echo $row2["item_name"]; ?></p>
-      <p><?php echo 'Rs.'.$row2["price"]; ?></p>
-      <p><a class="linkstyle" href="item.php?food_id=<?php echo $row2["food_id"]; ?>"> ADD TO CART</a></p>
-  </div>
-
-
-    <?php
-      }
-        
-        
-} else {
-  echo "0 results";
+</div>
+<?php
 }
+
+$result = mysqli_query($dbConn,"SELECT * FROM `food`");
+while($row = mysqli_fetch_assoc($result)){
+    $folder="./Upload";  
+    $url = $folder."/".$row["image"];
+   
+                          echo "<div class='column'>
+			  <form method='post' action=''>
+			  <input type='hidden' name='code' value=".$row['food_id']." />
+                          <div class='card'><img src='".$url."' class='images'/></div>
+			  <p><b>".$row['item_name']."</b></p>
+		   	  <p class='price'>Rs.".$row['price']."</p>
+			  <p><button class='cardbutton'>Buy Now</button></p>
+			  </form>
+		   	  </div>";
+
+        }
+mysqli_close($dbConn);
 ?>
 
-<?php include './footer.php';  ?>
+<div style="clear:both;"></div>
+
+<div class="message_box" style="margin:10px 0px;">
+<?php echo $status; ?>
+</div>
+
+<br /><br />
+</div>
+    </form>
 </body>
+<?php include './footer.php'; ?>
 </html>
